@@ -1,35 +1,26 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Box } from "@mui/material"
+import { useState } from "react";
+import Header from "./components/header";
+import Selector from "./components/selector";
+import PiecesList from "./components/pieces_list";
+import UploadPhotoButton from "./components/uploadPhoto";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function ComputerVisionDemo() {
 
+  const [product, setProduct] = useState("");
+  
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Box component="main" sx={{ minHeight: "100svh", bgcolor: '#f0f0f0', p: 3}}>
+      <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'center',}}>
+        <Header/>
+        <Selector productSetter={setProduct}/>
+        <PiecesList selectedProduct={product}/>
+      </Box>
+      <Box sx={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', mt: 2, ml: {xs: 0, lg: 35}}}>
+        { product && (
+          <UploadPhotoButton/>
+        )}
+      </Box>
+    </Box>
+  );
 }
-
-export default App
