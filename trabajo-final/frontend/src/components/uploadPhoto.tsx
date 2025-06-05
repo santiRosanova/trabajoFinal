@@ -1,109 +1,122 @@
-import { CloudUpload } from "@mui/icons-material"
+import { useState, useEffect } from "react"
 import { Box, Button, CircularProgress } from "@mui/material"
-import { useState } from "react"
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { CloudUpload } from "@mui/icons-material"
+import CheckCircleIcon from "@mui/icons-material/CheckCircle"
+import { uploadImage } from "../api_services/prediction_service"
 
 export default function UploadPhotoButton() {
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [annotated, setAnnotated] = useState<string | null>(null)
+  const [isProcessingLocal, setIsProcessingLocal] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [imageValidated, setImageValidated] = useState(false)
 
-    const [uploadedImage, setUploadedImage] = useState<string | null>(null)
-    const [isProcessing, setIsProcessing] = useState(false)
-    const [imageValidated, setImageValidated] = useState(false)
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setIsProcessing(true)
-      setUploadedImage(null)
-      const file = event.target.files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string)
-        setIsProcessing(false)
-        setImageValidated(false)
-      }
-      reader.readAsDataURL(file)
+  /* vista previa local */
+  useEffect(() => {
+    if (!file) {
+      setPreview(null)
+      return
     }
+    const url = URL.createObjectURL(file)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPreview(null)
+    const f = e.target.files?.[0]
+    if (!f) return
+    setIsProcessingLocal(true)
+    setFile(f)
+    setImageValidated(false)
+    setAnnotated(null)
+  }
+
+  const handleValidate = async () => {
+    if (!file) return
+    setIsProcessing(true)
+    try {
+      const res = await uploadImage(file)
+      setAnnotated(res.annotated_image_b64)
+      // si necesitás el conteo, lo tenés en res.quantity_per_class
+      setImageValidated(true)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   return (
-    <Box sx={{display: 'flex', flexDirection: 'row', gap: 4}} >
-        <Box>
-            <input
-                accept="image/*"
-                id="image-upload"
-                type="file"
-                hidden
-                onChange={handleImageUpload}
-                style={{ display: 'none' }}
+    <Box sx={{ display: "flex", flexDirection: "row", gap: 4 }}>
+      {/* selector */}
+      <Box>
+        <input
+          accept="image/*"
+          id="image-upload"
+          type="file"
+          hidden
+          onChange={handleImageUpload}
+        />
+        <label htmlFor="image-upload">
+          <Button variant="outlined" component="span" startIcon={<CloudUpload />} sx={btnStyle}>
+            Seleccionar Imagen
+          </Button>
+        </label>
+      </Box>
+
+      {/* preview local + spinner de subida */}
+      <Box>
+        {isProcessingLocal && <CircularProgress color="inherit" sx={{ mt: 2 }} />}
+        {preview && 
+            <img src={preview} 
+            onLoad={() => setIsProcessingLocal(false)} 
+            style={{ maxHeight: 500, objectFit: "contain" }} 
             />
-            <label htmlFor="image-upload">
-            <Button variant="outlined" component="span" startIcon={<CloudUpload/>} 
-                sx={{
-                    backgroundColor: '#f0f0f0',
-                    color: '#000',
-                    textTransform: 'none',
-                    padding: '8px 16px',
-                    borderRadius: 1,
-                    borderColor: '#000',
-                    borderWidth: 1,
-                    width: '14rem',
-                    textAlign: 'center',
-                    fontSize: '1.2rem',
-                }}>
-                Seleccionar Imagen a Validar
-            </Button>
-            </label>
-        </Box>
-        <Box>
-            {uploadedImage && (
-                <Box>
-                    <img
-                    src={uploadedImage}
-                    alt="Uploaded"
-                    style={{ maxHeight: 500, objectFit: "contain"}}
-                    />
-                </Box>
-            )}
-            {isProcessing && (
-                <CircularProgress color="inherit" sx={{mt: 3}} />
-            )}
-        </Box>
-        <Box>
-            {uploadedImage && !isProcessing && (
-            <Button variant="outlined" component="span"
-                onClick={() => {
-                    setImageValidated(true)
-                    // LOGICA DE VALIDACIÓN DE IMAGEN AQUÍ
-                }}
-                sx={{
-                    backgroundColor: '#f0f0f0',
-                    color: '#1c7537',
-                    textTransform: 'none',
-                    padding: '8px 16px',
-                    borderRadius: 1,
-                    borderColor: '#1c7537',
-                    borderWidth: 2,
-                    width: '14rem',
-                    textAlign: 'center',
-                    fontSize: '1.2rem',
-                    fontWeight: 'bold',
-                }}>
-                Validar Imagen
-            </Button>
-            )}
-        </Box>
-        <Box>
-            {uploadedImage && imageValidated && (
-                <Box sx={{display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2}}>
-                    <Box>
-                        <img
-                        src={"src/assets/result.jpg"}
-                        alt="Uploaded"
-                        style={{ maxHeight: 500, objectFit: "contain"}}
-                        />
-                    </Box>
-                    <CheckCircleIcon color="success" sx={{fontSize: '6rem'}}/>
-                </Box>
-            )}
-        </Box>
+        }
+      </Box>
+
+      {/* botón validar */}
+      <Box>
+        {file && !isProcessingLocal && (
+          <Button variant="outlined" onClick={handleValidate} sx={validateBtnStyle}>
+            Validar Imagen
+          </Button>
+        )}
+      </Box>
+
+      {/* resultado: spinner mientras espera y luego imagen anotada */}
+      <Box>
+        {isProcessing && imageValidated === false && <CircularProgress color="inherit" sx={{ mt: 0 }} />}
+
+        {imageValidated && annotated && !isProcessing && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <img
+              src={`data:image/jpeg;base64,${annotated}`}
+              style={{ maxHeight: 500, objectFit: "contain" }}
+            />
+            <CheckCircleIcon color="success" sx={{ fontSize: "6rem" }} />
+          </Box>
+        )}
+      </Box>
     </Box>
-  );
+  )
+}
+
+/* estilos */
+const btnStyle = {
+  backgroundColor: "#f0f0f0",
+  color: "#000",
+  textTransform: "none",
+  px: 2,
+  borderRadius: 1,
+  borderColor: "#000",
+  width: "14rem",
+  fontSize: "1.2rem",
+}
+
+const validateBtnStyle = {
+  ...btnStyle,
+  color: "#1c7537",
+  borderColor: "#1c7537",
+  fontWeight: "bold",
 }
