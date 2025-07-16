@@ -6,5 +6,5 @@ export async function uploadImage(file: File) {
     body: formData,
   })
   if (!res.ok) throw new Error("Upload failed")
-  return res.json()          // { annotated_image_b64, quantity_per_class }
+  return res.json()
 }

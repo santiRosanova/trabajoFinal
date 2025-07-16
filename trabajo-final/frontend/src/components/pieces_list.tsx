@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { Box } from "@mui/material"
 import ChecklistItem from "./checkListItem";
 
@@ -25,8 +24,13 @@ const PIECES = [
   "IN00070-06",
 ];
 
-type PieceState = { checked: boolean; qty: number | "" }
-const defaultState: PieceState = { checked: false, qty: 0 }
+type PieceState = { checked: boolean; qty: number }
+
+interface Props {
+  selectedProduct: string
+  pieces: Record<string, PieceState>
+  updatePiece: (label: string, data: Partial<PieceState>) => void
+}
 
 const chunkArray = <T,>(arr: T[], size: number) =>
   arr.reduce<T[][]>((chunks, item, idx) => {
@@ -35,53 +39,31 @@ const chunkArray = <T,>(arr: T[], size: number) =>
     return chunks
   }, [])
 
-interface PiecesProps {
-  selectedProduct: string
-}
-
-export default function PiecesList({ selectedProduct }: PiecesProps) {
-  const [pieces, setPieces] = useState<Record<string, PieceState>>({})
-
-  const getPiece = (label: string) => pieces[label] ?? defaultState
-
-  const updatePiece = (label: string, data: Partial<PieceState>) =>
-    setPieces((prev) => ({
-      ...prev,
-      [label]: { ...getPiece(label), ...data },
-    }))
-
+export default function PiecesList({ selectedProduct, pieces, updatePiece }: Props) {
   const groups = chunkArray(PIECES, 5)
 
+  const getPiece = (l: string) => pieces[l] ?? { checked: false, qty: 0 }
+
   return (
-    <Box sx={{ width: "100%", mt: 4, display: "flex", flexDirection: { xs: "column", lg: "row"}, gap: 2, justifyContent: "center" }}>
-        {selectedProduct && (
-            groups.map((group, gIdx) => (
-                <Box
-                key={gIdx}
-                sx={{
-                    mb: 3,
-                    p: 2,
-                    border: "1px solid rgb(0, 0, 0)",
-                    borderRadius: 1,
-                    bgcolor: "#f0f0f0",
-                }}
-                >
-                {group.map((label) => {
-                    const { checked, qty } = getPiece(label)
-                    return (
-                    <ChecklistItem
-                        key={label}
-                        label={label}
-                        checked={checked}
-                        quantity={qty}
-                        onCheckedChange={(c) => updatePiece(label, { checked: c })}
-                        onQuantityChange={(q) => updatePiece(label, { qty: q })}
-                    />
-                    )
-                })}
-                </Box>
-            ))
-        )}
+    <Box sx={{ width: "100%", mt: 4, display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 2, justifyContent: "center" }}>
+      {selectedProduct &&
+        groups.map((g, idx) => (
+          <Box key={idx} sx={{ mb: 3, p: 2, border: "1px solid #000", borderRadius: 1, bgcolor: "#f0f0f0" }}>
+            {g.map((label) => {
+              const { checked, qty } = getPiece(label)
+              return (
+                <ChecklistItem
+                  key={label}
+                  label={label}
+                  checked={checked}
+                  quantity={qty}
+                  onCheckedChange={(c) => updatePiece(label, { checked: c })}
+                  onQuantityChange={(q) => updatePiece(label, { qty: q })}
+                />
+              )
+            })}
+          </Box>
+        ))}
     </Box>
   )
 }

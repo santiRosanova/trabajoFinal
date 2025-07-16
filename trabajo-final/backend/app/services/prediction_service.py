@@ -18,14 +18,14 @@ class PredictionService:
         self.workflow = settings.roboflow_workflow
 
     def run(self, image_bytes: bytes) -> Dict:
-        """Ejecuta el workflow y devuelve imagen anotada (base64) + conteos."""
         pil_img = Image.open(BytesIO(image_bytes))
 
         result = self.client.run_workflow(
             workspace_name=self.workspace,
             workflow_id=self.workflow,
             images={"image": pil_img},
-            parameters={"confidence": 0.6, "overlap": 0.8},
+            parameters={"confidence": 0.3, "overlap": 0.8},
+            # parameters={"confidence": 0.3},
             use_cache=True,
         )
 
@@ -35,10 +35,8 @@ class PredictionService:
     def _parse_result(result):
         data = result[0]
 
-        # Imagen con bounding-boxes en base64
         annotated_b64 = data["output_image"]
 
-        # Conteo por clase
         preds = data.get("predictions", {}).get("predictions", [])
         quantity_per_class = dict(Counter(p["class"] for p in preds))
 
@@ -46,9 +44,6 @@ class PredictionService:
             "annotated_image_b64": annotated_b64,
             "quantity_per_class": quantity_per_class,
         }
-
-# -------- helper para FastAPI --------
-from fastapi import Depends
 
 def get_prediction_service() -> "PredictionService":
     return PredictionService()

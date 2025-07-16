@@ -3,8 +3,12 @@ import { Box, Button, CircularProgress } from "@mui/material"
 import { CloudUpload } from "@mui/icons-material"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import { uploadImage } from "../api_services/prediction_service"
+import { grey } from "@mui/material/colors"
 
-export default function UploadPhotoButton() {
+interface UploadProps {
+  onValidated: (payload: { annotated_image_b64: string; quantity_per_class: Record<string, number> }) => void
+}
+export default function UploadPhotoButton({ onValidated }: UploadProps) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [annotated, setAnnotated] = useState<string | null>(null)
@@ -12,7 +16,6 @@ export default function UploadPhotoButton() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [imageValidated, setImageValidated] = useState(false)
 
-  /* vista previa local */
   useEffect(() => {
     if (!file) {
       setPreview(null)
@@ -33,22 +36,21 @@ export default function UploadPhotoButton() {
     setAnnotated(null)
   }
 
-  const handleValidate = async () => {
-    if (!file) return
-    setIsProcessing(true)
-    try {
-      const res = await uploadImage(file)
-      setAnnotated(res.annotated_image_b64)
-      // si necesitás el conteo, lo tenés en res.quantity_per_class
-      setImageValidated(true)
-    } finally {
-      setIsProcessing(false)
+    const handleValidate = async () => {
+        if (!file) return
+        setIsProcessing(true)
+        try {
+        const res = await uploadImage(file)
+        setAnnotated(res.annotated_image_b64)
+        setImageValidated(true)
+        onValidated(res)
+        } finally {
+        setIsProcessing(false)
+        }
     }
-  }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "row", gap: 4 }}>
-      {/* selector */}
       <Box>
         <input
           accept="image/*"
@@ -59,14 +61,13 @@ export default function UploadPhotoButton() {
         />
         <label htmlFor="image-upload">
           <Button variant="outlined" component="span" startIcon={<CloudUpload />} sx={btnStyle}>
-            Seleccionar Imagen
+            Seleccionar Imagen a Validar
           </Button>
         </label>
       </Box>
 
-      {/* preview local + spinner de subida */}
       <Box>
-        {isProcessingLocal && <CircularProgress color="inherit" sx={{ mt: 2 }} />}
+        {isProcessingLocal && <CircularProgress color="inherit" sx={{ mt: 2, color: grey[600] }} />}
         {preview && 
             <img src={preview} 
             onLoad={() => setIsProcessingLocal(false)} 
@@ -75,7 +76,6 @@ export default function UploadPhotoButton() {
         }
       </Box>
 
-      {/* botón validar */}
       <Box>
         {file && !isProcessingLocal && (
           <Button variant="outlined" onClick={handleValidate} sx={validateBtnStyle}>
@@ -84,9 +84,8 @@ export default function UploadPhotoButton() {
         )}
       </Box>
 
-      {/* resultado: spinner mientras espera y luego imagen anotada */}
       <Box>
-        {isProcessing && imageValidated === false && <CircularProgress color="inherit" sx={{ mt: 0 }} />}
+        {isProcessing && imageValidated === false && <CircularProgress sx={{ mt: 0, color: grey[600] }} />}
 
         {imageValidated && annotated && !isProcessing && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -102,7 +101,6 @@ export default function UploadPhotoButton() {
   )
 }
 
-/* estilos */
 const btnStyle = {
   backgroundColor: "#f0f0f0",
   color: "#000",
@@ -112,6 +110,7 @@ const btnStyle = {
   borderColor: "#000",
   width: "14rem",
   fontSize: "1.2rem",
+  textAlign: "center",
 }
 
 const validateBtnStyle = {
